@@ -95,8 +95,9 @@ Example usage as python client:
 """
 
 import sys, os, getopt, time, codecs, re
+
 try:
-    unicode_string = unicode 
+    unicode_string = unicode
     binary_string = str
 except NameError:
     unicode_string = str
@@ -113,6 +114,8 @@ except ImportError:
 
 try:
     from rfc6266 import build_header
+
+
     def make_content_disposition_header(fn):
         return build_header(os.path.basename(fn)).decode('ascii')
 except ImportError:
@@ -123,7 +126,7 @@ if sys.version_info[0] < 3:
     open = codecs.open
 
 import requests
-import socket 
+import socket
 import tempfile
 import hashlib
 import platform
@@ -158,7 +161,7 @@ TikaFilesPath = tempfile.gettempdir()
 TikaServerLogFilePath = log_path
 TikaServerJar = os.getenv(
     'TIKA_SERVER_JAR',
-    "http://search.maven.org/remotecontent?filepath=org/apache/tika/tika-server/"+TikaVersion+"/tika-server-"+TikaVersion+".jar")
+    "http://search.maven.org/remotecontent?filepath=org/apache/tika/tika-server/" + TikaVersion + "/tika-server-" + TikaVersion + ".jar")
 ServerHost = "localhost"
 Port = "9998"
 ServerEndpoint = os.getenv(
@@ -168,17 +171,27 @@ Translator = os.getenv(
     "org.apache.tika.language.translate.Lingo24Translator")
 TikaClientOnly = os.getenv('TIKA_CLIENT_ONLY', False)
 TikaServerClasspath = os.getenv('TIKA_SERVER_CLASSPATH', '')
+TIKA_STARTUP_SLEEP = os.getenv('TIKA_STARTUP_SLEEP', 5)
+TIKA_STARTUP_MAX_RETRY = os.getenv('TIKA_STARTUP_MAX_RETRY', 3)
+TIKA_JAVA = os.getenv("TIKA_JAVA", "java")
 
 Verbose = 0
 EncodeUtf8 = 0
 csvOutput = 0
 
+
 class TikaException(Exception):
     pass
 
+
 def echo2(*s): sys.stderr.write(unicode_string('tika.py: %s\n') % unicode_string(' ').join(map(unicode_string, s)))
+
+
 def warn(*s):  echo2('Warn:', *s)
-def die(*s):   warn('Error:',  *s); echo2(USAGE); sys.exit()
+
+
+def die(*s):   warn('Error:', *s); echo2(USAGE); sys.exit()
+
 
 def runCommand(cmd, option, urlOrPaths, port, outDir=None,
                serverHost=ServerHost, tikaServerJar=TikaServerJar,
@@ -208,7 +221,7 @@ def runCommand(cmd, option, urlOrPaths, port, outDir=None,
     elif cmd == "language":
         return detectLang(option, urlOrPaths, serverEndpoint, verbose, tikaServerJar)
     elif cmd == "translate":
-        return doTranslate(option, urlOrPaths, serverEndpoint, verbose, tikaServerJar)        
+        return doTranslate(option, urlOrPaths, serverEndpoint, verbose, tikaServerJar)
     elif cmd == "config":
         status, resp = getConfig(option, serverEndpoint, verbose, tikaServerJar)
         return resp
@@ -226,19 +239,21 @@ def getPaths(urlOrPaths):
     :return: ``list`` of paths
     '''
     if isinstance(urlOrPaths, basestring):
-        #FIXME: basestring is undefined
+        # FIXME: basestring is undefined
         urlOrPaths = [urlOrPaths]  # do not recursively walk over letters of a single path which can include "/"
     paths = []
     for eachUrlOrPaths in urlOrPaths:
         if os.path.isdir(eachUrlOrPaths):
             for root, directories, filenames in walk(eachUrlOrPaths):
                 for filename in filenames:
-                    paths.append(os.path.join(root,filename))
+                    paths.append(os.path.join(root, filename))
         else:
             paths.append(eachUrlOrPaths)
     return paths
 
-def parseAndSave(option, urlOrPaths, outDir=None, serverEndpoint=ServerEndpoint, verbose=Verbose, tikaServerJar=TikaServerJar,
+
+def parseAndSave(option, urlOrPaths, outDir=None, serverEndpoint=ServerEndpoint, verbose=Verbose,
+                 tikaServerJar=TikaServerJar,
                  responseMimeType='application/json', metaExtension='_meta.json',
                  services={'meta': '/meta', 'text': '/tika', 'all': '/rmeta'}):
     '''
@@ -265,12 +280,12 @@ def parseAndSave(option, urlOrPaths, outDir=None, serverEndpoint=ServerEndpoint,
             log.info('Writing %s' % metaPath)
             with open(metaPath, 'w', 'utf-8') as f:
                 f.write(parse1(option, path, serverEndpoint, verbose, tikaServerJar, \
-                                    responseMimeType, services)[1] + u"\n")
+                               responseMimeType, services)[1] + u"\n")
         metaPaths.append(metaPath)
     return metaPaths
 
 
-def parse(option, urlOrPaths, serverEndpoint=ServerEndpoint, verbose=Verbose, tikaServerJar=TikaServerJar, 
+def parse(option, urlOrPaths, serverEndpoint=ServerEndpoint, verbose=Verbose, tikaServerJar=TikaServerJar,
           responseMimeType='application/json',
           services={'meta': '/meta', 'text': '/tika', 'all': '/rmeta'}, rawResponse=False):
     '''
@@ -285,11 +300,12 @@ def parse(option, urlOrPaths, serverEndpoint=ServerEndpoint, verbose=Verbose, ti
     :return:
     '''
     return [parse1(option, path, serverEndpoint, verbose, tikaServerJar, responseMimeType, services)
-             for path in urlOrPaths]
+            for path in urlOrPaths]
 
-def parse1(option, urlOrPath, serverEndpoint=ServerEndpoint, verbose=Verbose, tikaServerJar=TikaServerJar, 
-          responseMimeType='application/json',
-          services={'meta': '/meta', 'text': '/tika', 'all': '/rmeta/text'}, rawResponse=False, headers=None):
+
+def parse1(option, urlOrPath, serverEndpoint=ServerEndpoint, verbose=Verbose, tikaServerJar=TikaServerJar,
+           responseMimeType='application/json',
+           services={'meta': '/meta', 'text': '/tika', 'all': '/rmeta/text'}, rawResponse=False, headers=None):
     '''
     Parse the object and return extracted metadata and/or text in JSON format.
     :param option:
@@ -318,9 +334,10 @@ def parse1(option, urlOrPath, serverEndpoint=ServerEndpoint, verbose=Verbose, ti
     if file_type == 'remote': os.unlink(path)
     return (status, response)
 
+
 def detectLang(option, urlOrPaths, serverEndpoint=ServerEndpoint, verbose=Verbose, tikaServerJar=TikaServerJar,
-                responseMimeType='text/plain',
-                services={'file' : '/language/stream'}):
+               responseMimeType='text/plain',
+               services={'file': '/language/stream'}):
     '''
     Detect the language of the provided stream and return its 2 character code as text/plain.
     :param option:
@@ -336,9 +353,10 @@ def detectLang(option, urlOrPaths, serverEndpoint=ServerEndpoint, verbose=Verbos
     return [detectLang1(option, path, serverEndpoint, verbose, tikaServerJar, responseMimeType, services)
             for path in paths]
 
-def detectLang1(option, urlOrPath, serverEndpoint=ServerEndpoint, verbose=Verbose, tikaServerJar=TikaServerJar, 
-               responseMimeType='text/plain',
-               services={'file' : '/language/stream'}):
+
+def detectLang1(option, urlOrPath, serverEndpoint=ServerEndpoint, verbose=Verbose, tikaServerJar=TikaServerJar,
+                responseMimeType='text/plain',
+                services={'file': '/language/stream'}):
     '''
     Detect the language of the provided stream and return its 2 character code as text/plain.
     :param option:
@@ -356,10 +374,11 @@ def detectLang1(option, urlOrPath, serverEndpoint=ServerEndpoint, verbose=Verbos
         raise TikaException('Language option must be one of %s ' % binary_string(services.keys()))
     service = services[option]
     status, response = callServer('put', serverEndpoint, service, open(path, 'rb'),
-            {'Accept': responseMimeType}, verbose, tikaServerJar)
+                                  {'Accept': responseMimeType}, verbose, tikaServerJar)
     return (status, response)
 
-def doTranslate(option, urlOrPaths, serverEndpoint=ServerEndpoint, verbose=Verbose, tikaServerJar=TikaServerJar, 
+
+def doTranslate(option, urlOrPaths, serverEndpoint=ServerEndpoint, verbose=Verbose, tikaServerJar=TikaServerJar,
                 responseMimeType='text/plain',
                 services={'all': '/translate/all'}):
     '''
@@ -376,9 +395,10 @@ def doTranslate(option, urlOrPaths, serverEndpoint=ServerEndpoint, verbose=Verbo
     paths = getPaths(urlOrPaths)
     return [doTranslate1(option, path, serverEndpoint, verbose, tikaServerJar, responseMimeType, services)
             for path in paths]
-    
+
+
 def doTranslate1(option, urlOrPath, serverEndpoint=ServerEndpoint, verbose=Verbose, tikaServerJar=TikaServerJar,
-                 responseMimeType='text/plain', 
+                 responseMimeType='text/plain',
                  services={'all': '/translate/all'}):
     '''
 
@@ -394,7 +414,7 @@ def doTranslate1(option, urlOrPath, serverEndpoint=ServerEndpoint, verbose=Verbo
     path, mode = getRemoteFile(urlOrPath, TikaFilesPath)
     srcLang = ""
     destLang = ""
-    
+
     if ":" in option:
         options = option.rsplit(':')
         srcLang = options[0]
@@ -404,17 +424,18 @@ def doTranslate1(option, urlOrPath, serverEndpoint=ServerEndpoint, verbose=Verbo
             raise TikaException('Translate options are specified as srcLang:destLang or as destLang')
     else:
         destLang = option
-          
+
     if srcLang != "" and destLang != "":
         service = services["all"] + "/" + Translator + "/" + srcLang + "/" + destLang
     else:
-        service = services["all"] + "/" + Translator + "/" + destLang  
+        service = services["all"] + "/" + Translator + "/" + destLang
     status, response = callServer('put', serverEndpoint, service, open(path, 'rb'),
-                                  {'Accept' : responseMimeType},
+                                  {'Accept': responseMimeType},
                                   verbose, tikaServerJar)
     return (status, response)
-                       
-def detectType(option, urlOrPaths, serverEndpoint=ServerEndpoint, verbose=Verbose, tikaServerJar=TikaServerJar, 
+
+
+def detectType(option, urlOrPaths, serverEndpoint=ServerEndpoint, verbose=Verbose, tikaServerJar=TikaServerJar,
                responseMimeType='text/plain',
                services={'type': '/detect/stream'}):
     '''
@@ -430,11 +451,12 @@ def detectType(option, urlOrPaths, serverEndpoint=ServerEndpoint, verbose=Verbos
     '''
     paths = getPaths(urlOrPaths)
     return [detectType1(option, path, serverEndpoint, verbose, tikaServerJar, responseMimeType, services)
-             for path in paths]
+            for path in paths]
 
-def detectType1(option, urlOrPath, serverEndpoint=ServerEndpoint, verbose=Verbose, tikaServerJar=TikaServerJar, 
-               responseMimeType='text/plain',
-               services={'type': '/detect/stream'}):
+
+def detectType1(option, urlOrPath, serverEndpoint=ServerEndpoint, verbose=Verbose, tikaServerJar=TikaServerJar,
+                responseMimeType='text/plain',
+                services={'type': '/detect/stream'}):
     '''
     Detect the MIME/media type of the stream and return it in text/plain.
     :param option:
@@ -452,17 +474,19 @@ def detectType1(option, urlOrPath, serverEndpoint=ServerEndpoint, verbose=Verbos
         raise TikaException('Detect option must be one of %s' % binary_string(services.keys()))
     service = services[option]
     status, response = callServer('put', serverEndpoint, service, open(path, 'rb'),
-            {
-                'Accept': responseMimeType,
-                'Content-Disposition': make_content_disposition_header(path)
-            },
-            verbose, tikaServerJar)
+                                  {
+                                      'Accept': responseMimeType,
+                                      'Content-Disposition': make_content_disposition_header(path)
+                                  },
+                                  verbose, tikaServerJar)
     if csvOutput == 1:
-        return(status, urlOrPath.decode("UTF-8") + "," + response)
+        return (status, urlOrPath.decode("UTF-8") + "," + response)
     else:
         return (status, response)
 
-def getConfig(option, serverEndpoint=ServerEndpoint, verbose=Verbose, tikaServerJar=TikaServerJar, responseMimeType='application/json',
+
+def getConfig(option, serverEndpoint=ServerEndpoint, verbose=Verbose, tikaServerJar=TikaServerJar,
+              responseMimeType='application/json',
               services={'mime-types': '/mime-types', 'detectors': '/detectors', 'parsers': '/parsers/details'}):
     '''
     Get the configuration of the Tika Server (parsers, detectors, etc.) and return it in JSON format.
@@ -477,7 +501,8 @@ def getConfig(option, serverEndpoint=ServerEndpoint, verbose=Verbose, tikaServer
     if option not in services:
         die('config option must be one of mime-types, detectors, or parsers')
     service = services[option]
-    status, response = callServer('get', serverEndpoint, service, None, {'Accept': responseMimeType}, verbose, tikaServerJar)
+    status, response = callServer('get', serverEndpoint, service, None, {'Accept': responseMimeType}, verbose,
+                                  tikaServerJar)
     return (status, response)
 
 
@@ -497,27 +522,27 @@ def callServer(verb, serverEndpoint, service, data, headers, verbose=Verbose, ti
     :param classpath:
     :return:
     '''
-    parsedUrl = urlparse(serverEndpoint) 
+    parsedUrl = urlparse(serverEndpoint)
     serverHost = parsedUrl.hostname
     scheme = parsedUrl.scheme
 
     port = parsedUrl.port
     if classpath is None:
         classpath = TikaServerClasspath
-    
+
     global TikaClientOnly
     if not TikaClientOnly:
         serverEndpoint = checkTikaServer(scheme, serverHost, port, tikaServerJar, classpath)
 
-    serviceUrl  = serverEndpoint + service
+    serviceUrl = serverEndpoint + service
     if verb not in httpVerbs:
         log.exception('Tika Server call must be one of %s' % binary_string(httpVerbs.keys()))
         raise TikaException('Tika Server call must be one of %s' % binary_string(httpVerbs.keys()))
     verbFn = httpVerbs[verb]
-    
+
     if Windows and hasattr(data, "read"):
         data = data.read()
-        
+
     encodedData = data
     if type(data) is unicode_string:
         encodedData = data.encode('utf-8')
@@ -553,17 +578,21 @@ def checkTikaServer(scheme="http", serverHost=ServerHost, port=Port, tikaServerJ
     jarPath = os.path.join(TikaJarPath, 'tika-server.jar')
     if 'localhost' in serverEndpoint or '127.0.0.1' in serverEndpoint:
         alreadyRunning = checkPortIsOpen(serverHost, port)
-        
+
         if not alreadyRunning:
             if not os.path.isfile(jarPath) and urlp.scheme != '':
-                getRemoteJar(tikaServerJar, jarPath) 
-            
+                getRemoteJar(tikaServerJar, jarPath)
+
             if not checkJarSig(tikaServerJar, jarPath):
                 os.remove(jarPath)
                 tikaServerJar = getRemoteJar(tikaServerJar, jarPath)
-            
-            startServer(jarPath, serverHost, port, classpath)
+
+            status = startServer(jarPath, TIKA_JAVA, serverHost, port, classpath)
+            if not status:
+                log.error("Failed to receive startup confirmation from startServer.")
+                raise RuntimeError("Unable to start Tika server.")
     return serverEndpoint
+
 
 def checkJarSig(tikaServerJar, jarPath):
     '''
@@ -583,7 +612,7 @@ def checkJarSig(tikaServerJar, jarPath):
             return existingContents == m.hexdigest()
 
 
-def startServer(tikaServerJar, serverHost = ServerHost, port = Port, classpath=None):
+def startServer(tikaServerJar, java_path=TIKA_JAVA, serverHost=ServerHost, port=Port, classpath=None):
     '''
     Starts Tika Server
     :param tikaServerJar: path to tika server jar
@@ -594,26 +623,61 @@ def startServer(tikaServerJar, serverHost = ServerHost, port = Port, classpath=N
     '''
     if classpath is None:
         classpath = TikaServerClasspath
-    
+
     host = "localhost"
     if Windows:
         host = "0.0.0.0"
-    
+
     if classpath:
         classpath += ":" + tikaServerJar
     else:
         classpath = tikaServerJar
-        
-    cmd = 'java -cp %s org.apache.tika.server.TikaServerCli --port %i --host %s &' % (classpath, port, host)
-    logFile = open(os.path.join(TikaServerLogFilePath, 'tika-server.log'), 'w')
-    cmd = Popen(cmd , stdout= logFile, stderr = STDOUT, shell =True)
-    time.sleep(5) 
+
+    # setup command string
+    cmd_string = '%s -cp %s org.apache.tika.server.TikaServerCli --port %i --host %s &' \
+                 % (java_path, classpath, port, host)
+
+    # Check that we can write to log path
+    try:
+        tika_log_file_path = os.path.join(TikaServerLogFilePath, 'tika-server.log')
+        logFile = open(tika_log_file_path, 'w')
+    except PermissionError as e:
+        log.error("Unable to create tika-server.log at %s due to permission error." % (TikaServerLogFilePath))
+        return False
+
+    # Check that specified java binary is available on path
+    try:
+        _ = Popen(java_path, stdout=open(os.devnull, "w"), stderr=open(os.devnull, "w"))
+    except FileNotFoundError as e:
+        log.error("Unable to run java; is it installed?")
+        return False
+
+    # Run java with jar args
+    cmd = Popen(cmd_string, stdout=logFile, stderr=STDOUT, shell=True)
+
+    # Check logs and retry as configured
+    try_count = 0
+    is_started = False
+    while try_count < TIKA_STARTUP_MAX_RETRY:
+        with open(tika_log_file_path, "r") as tika_log_file_tmp:
+            # check for INFO string to confirm listening endpoint
+            if "Started Apache Tika server at" in tika_log_file_tmp.read():
+                is_started = True
+        time.sleep(TIKA_STARTUP_SLEEP)
+        try_count += 1
+
+    if not is_started:
+        log.error("Tika startup log message not received after %d tries" % (TIKA_STARTUP_MAX_RETRY))
+        return False
+    else:
+        return True
+
 
 def toFilename(urlOrPath):
     value = re.sub('[^\w\s-]', '-', urlOrPath).strip().lower()
     return re.sub('[-\s]+', '-', value).strip("-")
 
-    
+
 def getRemoteFile(urlOrPath, destPath):
     '''
     Fetches URL to local path or just returns absolute path.
@@ -628,7 +692,7 @@ def getRemoteFile(urlOrPath, destPath):
         return (urlOrPath, 'local')
     else:
         filename = toFilename(urlOrPath)
-        destPath = destPath + '/' +filename
+        destPath = destPath + '/' + filename
         log.info('Retrieving %s to %s.' % (urlOrPath, destPath))
         try:
             urlretrieve(urlOrPath, destPath)
@@ -643,6 +707,7 @@ def getRemoteFile(urlOrPath, destPath):
                 os.remove(destPath)
             urlretrieve(urlOrPath, destPath)
         return (destPath, 'remote')
+
 
 def getRemoteJar(urlOrPath, destPath):
     '''
@@ -667,27 +732,28 @@ def getRemoteJar(urlOrPath, destPath):
             # delete whatever we had there
             if os.path.exists(destPath) and os.path.isfile(destPath):
                 os.remove(destPath)
-            urlretrieve(urlOrPath, destPath) 
-               
+            urlretrieve(urlOrPath, destPath)
+
         return (destPath, 'remote')
-    
-def checkPortIsOpen(remoteServerHost=ServerHost, port = Port):
+
+
+def checkPortIsOpen(remoteServerHost=ServerHost, port=Port):
     '''
     Checks if the specified port is open
     :param remoteServerHost: the host address
     :param port: port which needs to be checked
     :return: ``True`` if port is open, ``False`` otherwise
     '''
-    remoteServerIP  = socket.gethostbyname(remoteServerHost)
+    remoteServerIP = socket.gethostbyname(remoteServerHost)
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         result = sock.connect_ex((remoteServerIP, int(port)))
         if result == 0:
             return True
-        else :
+        else:
             return False
         sock.close()
-        #FIXME: the above line is unreachable
+        # FIXME: the above line is unreachable
 
     except KeyboardInterrupt:
         print("You pressed Ctrl+C")
@@ -700,6 +766,7 @@ def checkPortIsOpen(remoteServerHost=ServerHost, port = Port):
     except socket.error:
         print("Couldn't connect to server")
         sys.exit()
+
 
 def main(argv=None):
     """Run Tika from command line according to USAGE."""
@@ -714,7 +781,7 @@ def main(argv=None):
         raise TikaException('Bad args')
     try:
         opts, argv = getopt.getopt(argv[1:], 'hi:s:o:p:v:e:c',
-          ['help', 'install=', 'server=', 'output=', 'port=', 'verbose', 'encode', 'csv'])
+                                   ['help', 'install=', 'server=', 'output=', 'port=', 'verbose', 'encode', 'csv'])
     except getopt.GetoptError as opt_error:
         msg, bad_opt = opt_error
         log.exception("%s error: Bad option: %s, %s" % (argv[0], bad_opt, msg))
@@ -725,14 +792,22 @@ def main(argv=None):
     outDir = '.'
     port = Port
     for opt, val in opts:
-        if opt   in ('-h', '--help'):    echo2(USAGE); sys.exit()
-        elif opt in ('--install'):       tikaServerJar = val
-        elif opt in ('--server'):        serverHost = val
-        elif opt in ('-o', '--output'):  outDir = val
-        elif opt in ('--port'):          port = val
-        elif opt in ('-v', '--verbose'): Verbose = 1
-        elif opt in ('-e', '--encode'): EncodeUtf8 = 1
-        elif opt in ('-c', '--csv'): csvOutput = 1
+        if opt in ('-h', '--help'):
+            echo2(USAGE); sys.exit()
+        elif opt in ('--install'):
+            tikaServerJar = val
+        elif opt in ('--server'):
+            serverHost = val
+        elif opt in ('-o', '--output'):
+            outDir = val
+        elif opt in ('--port'):
+            port = val
+        elif opt in ('-v', '--verbose'):
+            Verbose = 1
+        elif opt in ('-e', '--encode'):
+            EncodeUtf8 = 1
+        elif opt in ('-c', '--csv'):
+            csvOutput = 1
         else:
             raise TikaException(USAGE)
 
@@ -742,7 +817,8 @@ def main(argv=None):
         paths = argv[2:]
     except:
         paths = None
-    return runCommand(cmd, option, paths, port, outDir, serverHost=serverHost, tikaServerJar=tikaServerJar, verbose=Verbose, encode=EncodeUtf8)
+    return runCommand(cmd, option, paths, port, outDir, serverHost=serverHost, tikaServerJar=tikaServerJar,
+                      verbose=Verbose, encode=EncodeUtf8)
 
 
 if __name__ == '__main__':
@@ -762,4 +838,3 @@ if __name__ == '__main__':
     else:
         out.write(resp)
     out.write('\n')
-
